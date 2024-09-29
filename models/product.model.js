@@ -16,9 +16,8 @@ const ProductSchema = new mongoose.Schema(
             defualt: 0
         },
         description: {
-            type: Number,
-            required: true,
-            defualt: 0
+            type: String,
+            required: [true, "Please add product description"],
         },
         image: {
             type: String,
