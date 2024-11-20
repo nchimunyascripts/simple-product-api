@@ -1,174 +1,205 @@
-# Product API
+# MERN Stack Employee Database Application  
 
-This Product API is built with Node.js, Express, MongoDB, and Redis for caching. It provides basic CRUD operations for managing products and includes a Redis-based caching mechanism for faster access to paginated product data.
+Welcome to the **MERN Stack Employee Database Application**! This guide will help you build a full-stack application using MongoDB, Express, React, and Node.js. The app is designed to record employee information and display it using a React front end.
 
-## Features
-- **Get all products**: Retrieve a list of products with pagination support.
-- **Get a single product**: Retrieve details of a specific product by its ID.
-- **Create a product**: Add a new product to the database.
-- **Update a product**: Modify an existing product's information.
-- **Delete a product**: Remove a product from the database.
-- **Caching with Redis**: Cached product lists are stored in Redis for 60 seconds to improve performance.
+---
 
-## Technologies Used
-- **Node.js**: JavaScript runtime used to build the API.
-- **Express.js**: Fast and minimal web framework for Node.js.
-- **MongoDB**: NoSQL database for storing product data.
-- **Mongoose**: ODM for MongoDB used to manage product schemas and models.
-- **Redis**: In-memory data structure store used for caching product lists.
+## Table of Contents
+1. [About the MERN Stack](#about-the-mern-stack)  
+2. [Prerequisites](#prerequisites)  
+3. [Project Setup](#project-setup)  
+4. [Back-End Setup](#back-end-setup)  
+    - [Installing Dependencies](#installing-dependencies)  
+    - [Connecting to MongoDB Atlas](#connecting-to-mongodb-atlas)  
+    - [API Endpoints](#api-endpoints)  
+5. [Front-End Setup](#front-end-setup)  
+    - [Installing React and Vite](#installing-react-and-vite)  
+    - [Adding Tailwind CSS](#adding-tailwind-css)  
+    - [Setting Up React Router](#setting-up-react-router)  
+    - [Creating Components](#creating-components)  
+6. [Running the Application](#running-the-application)  
 
-## Endpoints
+---
 
-### 1. Get All Products
-```http
-GET /api/products
-```
-Retrieve a paginated list of all products.
-- **Query Parameters**:
-  - `page` (optional): The page number (default is 1).
-  - `limit` (optional): The number of products per page (default is 10).
-  
-#### Example Request:
-```
-GET /api/products?page=1&limit=10
-```
+## About the MERN Stack  
+The **MERN stack** is a popular web development framework that includes:  
+- **MongoDB**: A NoSQL database for storing data.  
+- **Express**: A Node.js framework for building APIs.  
+- **React**: A JavaScript library for building user interfaces.  
+- **Node.js**: A JavaScript runtime for building the back end.  
 
-#### Example Response:
-```json
-{
-  "products": [...],
-  "totalPages": 5,
-  "currentPage": 1
-}
-```
+---
 
-### 2. Get Single Product
-```http
-GET /api/products/:id
-```
-Retrieve the details of a product by its ID.
+## Prerequisites  
+Before starting, ensure you have:  
+1. **Node.js** (v20.11.0 or later).  
+2. A code editor (e.g., **Visual Studio Code**).  
+3. A **MongoDB Atlas** account for hosting your database ([Sign up for free here](https://www.mongodb.com/cloud/atlas)).  
 
-#### Example Request:
-```
-GET /api/products/12345
-```
+---
 
-#### Example Response:
-```json
-{
-  "_id": "12345",
-  "name": "Product Name",
-  "price": 50,
-  ...
-}
-```
+## Project Setup  
 
-### 3. Create a Product
-```http
-POST /api/products
-```
-Create a new product.
-
-#### Request Body:
-```json
-{
-  "name": "Product Name",
-  "price": 50,
-  "description": "Product description"
-}
-```
-
-#### Example Response:
-```json
-{
-  "_id": "12345",
-  "name": "Product Name",
-  "price": 50,
-  "description": "Product description"
-}
-```
-
-### 4. Update a Product
-```http
-PUT /api/products/:id
-```
-Update an existing product by its ID.
-
-#### Request Body:
-```json
-{
-  "name": "Updated Product Name",
-  "price": 60
-}
-```
-
-#### Example Response:
-```json
-{
-  "_id": "12345",
-  "name": "Updated Product Name",
-  "price": 60
-}
-```
-
-### 5. Delete a Product
-```http
-DELETE /api/products/:id
-```
-Delete a product by its ID.
-
-#### Example Response:
-```json
-{
-  "message": "Product has been deleted"
-}
-```
-
-## Setup and Installation
-
-### Prerequisites
-- Node.js
-- MongoDB
-- Redis
-
-### Installation Steps
-1. Clone the repository:
+1. Create a project folder:  
    ```bash
-   git clone <repository-url>
+   mkdir mern && cd mern
    ```
-2. Navigate into the project directory:
+
+2. Set up separate folders for the server and client:  
    ```bash
-   cd <project-directory>
+   mkdir server client
    ```
-3. Install the dependencies:
+
+---
+
+## Back-End Setup  
+
+### Installing Dependencies  
+Navigate to the `server` folder and initialize your project:  
+```bash
+cd server  
+npm init -y  
+```
+
+Install required packages:  
+```bash
+npm install mongodb express cors
+```
+
+### Connecting to MongoDB Atlas  
+1. Create a `config.env` file and add your MongoDB connection string:  
+   ```env
+   ATLAS_URI=mongodb+srv://<username>:<password>@<cluster>.<projectId>.mongodb.net/employees?retryWrites=true&w=majority  
+   PORT=5050
+   ```
+
+2. Create a `connection.js` file under the `db` folder to connect to MongoDB:  
+   ```javascript
+   import { MongoClient, ServerApiVersion } from "mongodb";
+
+   const uri = process.env.ATLAS_URI || "";
+   const client = new MongoClient(uri, { serverApi: { version: ServerApiVersion.v1, strict: true } });
+
+   try {
+       await client.connect();
+       console.log("Connected to MongoDB!");
+   } catch (err) {
+       console.error(err);
+   }
+
+   export default client.db("employees");
+   ```
+
+### API Endpoints  
+Define routes in `routes/record.js`:  
+```javascript
+import express from "express";
+import db from "../db/connection.js";
+import { ObjectId } from "mongodb";
+
+const router = express.Router();
+
+// Get all records
+router.get("/", async (req, res) => {
+    const collection = db.collection("records");
+    const results = await collection.find({}).toArray();
+    res.status(200).send(results);
+});
+
+// Create a record
+router.post("/", async (req, res) => {
+    const collection = db.collection("records");
+    const result = await collection.insertOne(req.body);
+    res.status(201).send(result);
+});
+
+export default router;
+```
+
+---
+
+## Front-End Setup  
+
+### Installing React and Vite  
+1. Navigate to the `client` folder and initialize a React project:  
    ```bash
+   npm create vite@latest . --template react  
    npm install
    ```
-4. Set up your MongoDB connection and Redis in the environment file (`.env`):
+
+### Adding Tailwind CSS  
+1. Install Tailwind CSS:  
    ```bash
-   MONGODB_URI=<Your MongoDB connection string>
-   REDIS_HOST=<Your Redis host>
-   REDIS_PORT=<Your Redis port>
+   npm install -D tailwindcss postcss autoprefixer  
+   npx tailwindcss init -p
    ```
 
-5. Start the server:
-   ```bash
-   npm start
+2. Configure Tailwind in `tailwind.config.js`:  
+   ```javascript
+   export default {
+       content: ["./index.html", "./src/**/*.{js,jsx}"],
+       theme: { extend: {} },
+       plugins: [],
+   };
    ```
 
-### Running the API
-The API will be running at `http://localhost:3000/`.
+3. Add Tailwind directives in `src/index.css`:  
+   ```css
+   @tailwind base;
+   @tailwind components;
+   @tailwind utilities;
+   ```
 
-## Caching with Redis
-- **Cache Key Format**: The cache key is generated using the page and limit query parameters in the following format:
-  ```
-  products:<page>:<limit>
-  ```
-- **TTL**: The cache for the product lists is stored for 60 seconds before it is refreshed.
+### Setting Up React Router  
+Install React Router:  
+```bash
+npm install react-router-dom
+```
 
-## Error Handling
-- The API returns `500` status code in case of server errors with a descriptive message.
-- For invalid or non-existing product requests, appropriate `404` or `400` status codes are returned.
+Define routes in `src/main.jsx`:  
+```javascript
+import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import App from "./App";
+import RecordList from "./components/RecordList";
+import "./index.css";
 
-## License
-This project is licensed under the MIT License.
+const router = createBrowserRouter([
+    { path: "/", element: <RecordList /> },
+]);
+
+ReactDOM.createRoot(document.getElementById("root")).render(<RouterProvider router={router} />);
+```
+
+### Creating Components  
+Create components for `Navbar`, `RecordList`, and `ModifyRecord` under `src/components/`.  
+
+Example `RecordList.jsx`:  
+```javascript
+const RecordList = () => {
+    return <div>Record List Component</div>;
+};
+
+export default RecordList;
+```
+
+---
+
+## Running the Application  
+
+1. **Start the back end**:  
+   ```bash
+   cd server  
+   node --env-file=config.env server.js
+   ```
+
+2. **Start the front end**:  
+   ```bash
+   cd client  
+   npm run dev
+   ```
+
+3. Access the application in your browser at `http://localhost:5173`.  
+
+---
+
+Enjoy building your MERN Stack Employee Database Application! 🚀  
